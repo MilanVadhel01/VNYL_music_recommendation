@@ -24,6 +24,10 @@ Notes:
 import os
 import sys
 import time
+
+# Force UTF-8 output on Windows to handle special characters
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 from pathlib import Path
 from typing import Any, Iterator
 

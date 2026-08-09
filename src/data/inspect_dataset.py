@@ -12,6 +12,10 @@ Usage:
 import sys
 from typing import Any
 
+# Force UTF-8 output on Windows to handle special characters
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
