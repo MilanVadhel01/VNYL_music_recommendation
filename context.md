@@ -10,10 +10,10 @@ Primary Goal:
 Build a personalized music recommendation engine using a large music dataset, audio/content features, user interactions, and eventually hybrid recommendation techniques.
 
 Current Development Stage:
-Content-Based Recommendation Baseline
+Fast Vector Similarity Search & UPS Foundation
 
 Current Phase:
-Phase 5 -- Initial Content-Based Recommendation (COMPLETED)
+Phase 8 -- User Interaction Tracking & Phase 9 -- UPS Personalization (Initial Foundation)
 
 Music Search
       |
@@ -40,15 +40,15 @@ Hybrid Recommendation
 3. External Music Metadata Retrieval [PLANNED]
 4. Audio/Content Feature Processing [COMPLETED]
 5. Song Embeddings [PLANNED]
-6. Vector Similarity Search [PLANNED]
-7. Content-Based Recommendation [COMPLETED -- baseline]
+6. Vector Similarity Search [COMPLETED]
+7. Content-Based Recommendation [COMPLETED -- FAISS]
 8. Collaborative Filtering [PLANNED]
-9. User Preference Scoring [PLANNED]
+9. User Preference Scoring [COMPLETED -- Foundation]
 10. Artist Preferences [PLANNED]
 11. Genre Preferences [PLANNED]
 12. Time-Based Preferences [PLANNED]
 13. Context-Based Preferences [PLANNED]
-14. Score Decay [PLANNED]
+14. Score Decay [COMPLETED -- Foundation]
 15. Hybrid Recommendation Ranking [PLANNED]
 16. Live Catalog Updates [PLANNED]
 17. New Song Handling [PLANNED]
@@ -61,20 +61,24 @@ Hybrid Recommendation
 
 CURRENT PHASE
 
-Phase 5 -- Initial Content-Based Recommendation
+Phase 7 -- FAISS / Vector Search
 Status: COMPLETED
 
+Phase 8 -- User Interaction Tracking
+Status: COMPLETED
+
+Phase 9 -- UPS Personalization
+Status: COMPLETED (Foundation)
+
 Objective:
-Build a working baseline content-based recommender using cosine similarity
-over normalised audio features from the 1M-track dataset.
+Replace brute-force search with FAISS for fast similarity retrieval.
+Build a reliable event logging layer for user interactions.
+Implement the first version of the User Preference Score (UPS).
 
 Features used:
-13 audio/content features (danceability, energy, loudness, speechiness,
-acousticness, instrumentalness, liveness, valence, tempo, duration,
-key, mode, time_signature)
-
-Similarity metric:
-Cosine similarity (brute-force, no ANN index)
+FAISS IndexFlatIP (exact cosine similarity via L2-normalization + inner product).
+Raw event history separate from aggregated user preferences.
+Heuristic initial weights for UPS, not learned parameters.
 
 ---
 
@@ -86,9 +90,9 @@ Cosine similarity (brute-force, no ANN index)
 [x] Phase 4 -- Feature Engineering
 [x] Phase 5 -- Initial Content-Based Recommendation
 [ ] Phase 6 -- Song Embeddings
-[ ] Phase 7 -- FAISS / Vector Search
-[ ] Phase 8 -- User Interaction Tracking
-[ ] Phase 9 -- UPS Personalization
+[x] Phase 7 -- FAISS / Vector Search
+[x] Phase 8 -- User Interaction Tracking
+[x] Phase 9 -- UPS Personalization
 [ ] Phase 10 -- Artist & Genre Preferences
 [ ] Phase 11 -- Time / Context Signals
 [ ] Phase 12 -- Collaborative Filtering
@@ -125,8 +129,8 @@ Parquet
 Future application database:
 PostgreSQL
 
-Future vector search:
-FAISS or another vector database depending on scale/performance evaluation.
+Vector search:
+FAISS (IndexFlatIP used for the initial exact similarity baseline).
 
 ### Recommendation Architecture
 Content Similarity
@@ -145,19 +149,25 @@ Freshness / Popularity
         |
 Final Ranking
 
-### Content-Based Baseline (COMPLETED)
+### Content-Based FAISS Recommender (COMPLETED)
 
 Similarity metric:
-Cosine similarity
+Cosine similarity (implemented through L2-normalized vectors + inner product in FAISS IndexFlatIP).
 
 Feature normalisation:
-StandardScaler (sklearn)
+StandardScaler (sklearn) followed by L2-normalization.
 
-Feature weighting:
-Equal treatment -- no arbitrary weights in the baseline.
+FAISS IndexFlatIP is used for the initial exact similarity baseline.
 
-FAISS:
-Intentionally deferred to Phase 7.
+### User Interaction & UPS Foundation (COMPLETED)
+
+Raw user interaction events are kept separate from aggregated user preferences.
+
+UPS weights are heuristic initial values and are not learned parameters.
+
+Historical interaction scores remain immutable.
+
+Decay is applied as a derived transformation, not by modifying historical events.
 
 ---
 
@@ -228,24 +238,39 @@ valence (float64)
 │   │   ├── songs_1m.parquet
 │   │   ├── content_features.npy
 │   │   ├── song_index.parquet
-│   │   └── content_scaler.joblib
+│   │   ├── content_scaler.joblib
+│   │   └── faiss/
+│   │       └── content.index
 │   └── embeddings/
 │
 ├── notebooks/
 │   ├── 01_dataset_exploration.ipynb
 │   └── 02_content_based_recommendation.ipynb
 │
-└── src/
-    ├── data/
-    │   ├── __init__.py
-    │   ├── inspect_dataset.py
-    │   ├── sample.py
-    │   └── prepare_features.py
-    │
-    └── models/
-        ├── __init__.py
-        ├── content_model.py
-        └── test_content_model.py
+├── src/
+│   ├── data/
+│   │   ├── __init__.py
+│   │   ├── inspect_dataset.py
+│   │   ├── sample.py
+│   │   └── prepare_features.py
+│   │
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── content_model.py
+│   │   ├── test_content_model.py
+│   │   ├── build_faiss_index.py
+│   │   ├── faiss_recommender.py
+│   │   ├── compare_faiss.py
+│   │   └── test_faiss.py
+│   │
+│   └── interactions/
+│       ├── __init__.py
+│       ├── models.py
+│       ├── ups.py
+│       └── test_ups_demo.py
+│
+└── tests/
+    └── test_ups.py
 
 ---
 
@@ -254,24 +279,15 @@ valence (float64)
 | Component                   | Status      | Location                                | Notes |
 | --------------------------- | ----------- | --------------------------------------- | ----- |
 | Python environment          | COMPLETED   |                                         | Verified in `venv` |
-| Requirements                | COMPLETED   | `requirements.txt`                      | Added joblib |
-| Hugging Face authentication | COMPLETED   |                                         |       |
-| Dataset inspection          | COMPLETED   | `src/data/inspect_dataset.py`           |       |
-| 1M extraction               | COMPLETED   | `src/data/sample.py`                    |       |
-| Parquet generation          | COMPLETED   | `data/processed/songs_1m.parquet`       |       |
-| Dataset validation          | COMPLETED   | `src/data/prepare_features.py`          | 0 missing in features, 465 tempo=0, 487 time_sig=0 |
-| EDA notebook                | COMPLETED   | `notebooks/01_dataset_exploration.ipynb` |       |
-| Feature selection           | COMPLETED   | `src/data/prepare_features.py`          | 13 features dynamically validated |
+| Requirements                | COMPLETED   | `requirements.txt`                      | Added faiss-cpu |
+| Dataset validation          | COMPLETED   | `src/data/prepare_features.py`          | 0 missing in features |
 | Feature normalisation       | COMPLETED   | `src/data/prepare_features.py`          | StandardScaler |
-| Feature matrix              | COMPLETED   | `data/processed/content_features.npy`   | (1000000, 13) float64, 99.2 MB |
-| Scaler                      | COMPLETED   | `data/processed/content_scaler.joblib`  | 0.9 KB |
-| Song index                  | COMPLETED   | `data/processed/song_index.parquet`     | 50.6 MB |
-| Content-based recommender   | COMPLETED   | `src/models/content_model.py`           | Cosine similarity baseline |
-| Recommender test script     | COMPLETED   | `src/models/test_content_model.py`      | All validations pass |
-| Recommendation notebook     | COMPLETED   | `notebooks/02_content_based_recommendation.ipynb` |       |
-| Embeddings                  | NOT STARTED |                                         |       |
-| FAISS                       | NOT STARTED |                                         |       |
-| UPS                         | NOT STARTED |                                         |       |
+| Feature matrix              | COMPLETED   | `data/processed/content_features.npy`   | (1000000, 13) float64 |
+| FAISS Index Builder         | COMPLETED   | `src/models/build_faiss_index.py`       | L2-normalized IndexFlatIP |
+| FAISS Index Artifact        | COMPLETED   | `data/processed/faiss/content.index`    | 49.6 MB |
+| FAISS Recommender           | COMPLETED   | `src/models/faiss_recommender.py`       | |
+| Interaction Tracking Models | COMPLETED   | `src/interactions/models.py`            | Raw immutable events |
+| UPS Scoring                 | COMPLETED   | `src/interactions/ups.py`               | Event heuristics & decay |
 
 ---
 
@@ -280,113 +296,77 @@ valence (float64)
 CURRENT STATE
 
 Current phase:
-Phase 5 -- Initial Content-Based Recommendation (COMPLETED)
+Phases 7-9: FAISS Search, User Interaction Tracking, UPS Foundation (COMPLETED)
 
 Current task:
 None -- phase completed.
 
 Last completed action:
-Built and tested the baseline content-based recommendation system.
+Built FAISS index, faiss_recommender, interaction models, and UPS scoring.
 
 Current blocker:
 None.
 
 Next action:
-Implement FAISS / approximate nearest-neighbour search for efficient
-similarity retrieval over the 1M-song feature matrix.
+Implement artist and genre preference aggregation and begin the personalized candidate-ranking layer.
 
 ---
 
 # Session Log
 
-## Session 2026-08-09 -- Session 1
+## Session 2026-08-09 -- Session 3
 
 ### Objective
-Initial project setup, dataset inspection, and extraction of a 1M track sample.
+Implement Steps 14-16: FAISS / Fast Similarity Search, User Interaction Tracking, and User Preference Score (UPS) Foundation.
 
 ### Completed
-- Set up Python environment and requirements.
-- Configured `.gitignore` and `README.md`.
-- Wrote `inspect_dataset.py` to check the Hugging Face dataset schema.
-- Wrote `sample.py` to stream and extract 1M tracks.
-- Saved extracted data to `data/processed/songs_1m.parquet`.
-- Ran a basic duplicate check showing 93,389 duplicate track/artist pairs.
-- Committed and pushed initial project structure to origin.
+- Added `faiss-cpu` and `pytest` to requirements.
+- Built FAISS `IndexFlatIP` from L2-normalized standardized feature vectors.
+- Created `FAISSContentRecommender` to replace brute-force baseline.
+- Validated FAISS output against brute-force (10/10 overlap).
+- Measured FAISS latency (FAISS ~12ms vs Brute-force ~121ms, speedup ~9.7x).
+- Designed interaction tracking schema with `ActionType` enum and `UserInteraction` dataclass (raw immutable events).
+- Created `InteractionStore` as an in-memory database prep for PostgreSQL.
+- Implemented UPS heuristic scoring rules (`calculate_event_score`, `calculate_user_song_preference`).
+- Addressed skip precedence and completion tier logic correctly (no double counting).
+- Added `apply_decay` function for time-based score decay without modifying raw events.
+- Created `test_ups.py` and `test_ups_demo.py` and passed all tests.
 
 ### Files Changed
-- `.gitignore`
-- `README.md`
-- `data/processed/.gitkeep`
-- `notebooks/01_dataset_exploration.ipynb`
-- `requirements.txt`
-- `src/data/__init__.py`
-- `src/data/inspect_dataset.py`
-- `src/data/sample.py`
-
-### Important Decisions
-- Proceed with `songs_1m.parquet` extraction as baseline.
-
-### Problems Encountered
-- Found duplicate track_name + artist_name pairs (93,389).
-
-### Solutions
-- Documented duplicates, keeping them in the parquet for now to address in a dedicated cleaning phase.
-
-### Current State
-1M dataset extracted and available in Parquet format. Next steps involve validating the schema, evaluating missing values, and executing data cleaning.
-
-### Next Step
-Execute deep dataset validation and decide on the cleaning strategy.
-
-## Session 2026-08-09 -- Session 2
-
-### Objective
-Implement Steps 9-13: dataset quality check, feature engineering, normalisation, and baseline content-based recommendation system.
-
-### Completed
-- Validated all 13 candidate content features exist with zero missing values.
-- Reported suspicious values: 465 tempo=0, 487 time_signature=0, 83 duration>3600s.
-- Built feature preparation pipeline (`src/data/prepare_features.py`).
-- Normalised 13 features using StandardScaler (no arbitrary weighting).
-- Saved artifacts: `content_features.npy` (99.2 MB), `song_index.parquet` (50.6 MB), `content_scaler.joblib` (0.9 KB).
-- Implemented `ContentRecommender` class with `recommend_by_track_id`, `recommend_by_song_name`, and `search_songs`.
-- Created CLI test script with `--track-id`, `--song-name`, and `--artist` flags.
-- Tested with multiple songs (Believer, Die With A Smile, Bohemian Rhapsody) -- all validations pass.
-- Created `notebooks/02_content_based_recommendation.ipynb`.
-- Fixed Windows cp1252 encoding issues across all scripts.
-
-### Files Changed
-- `requirements.txt` (added joblib)
-- `src/data/prepare_features.py` [NEW]
-- `src/data/inspect_dataset.py` (UTF-8 fix)
-- `src/data/sample.py` (UTF-8 fix)
-- `src/models/__init__.py` [NEW]
-- `src/models/content_model.py` [NEW]
-- `src/models/test_content_model.py` [NEW]
-- `notebooks/02_content_based_recommendation.ipynb` [NEW]
+- `requirements.txt` (added `faiss-cpu`)
+- `src/models/build_faiss_index.py` [NEW]
+- `src/models/faiss_recommender.py` [NEW]
+- `src/models/compare_faiss.py` [NEW]
+- `src/models/test_faiss.py` [NEW]
+- `src/interactions/__init__.py` [NEW]
+- `src/interactions/models.py` [NEW]
+- `src/interactions/ups.py` [NEW]
+- `src/interactions/test_ups_demo.py` [NEW]
+- `tests/test_ups.py` [NEW]
 - `context.md` (updated)
 
-### Important Decisions
-- Content-based baseline uses standardised numerical audio features.
-- Cosine similarity is the initial similarity metric.
-- FAISS is intentionally deferred to a later phase.
-- Arbitrary feature weighting is not used in the baseline.
-- tempo=0 and time_signature=0 are kept (Spotify API "unknown" values).
-- Duplicate track_name+artist_name pairs are kept in the baseline.
+### Tests Performed
+- `test_faiss.py`: Confirmed correct Top-N output, query exclusion, duplicates, sorting, score range.
+- `compare_faiss.py`: Tested exactness of FAISS vs brute-force (100% overlap).
+- `pytest tests/test_ups.py`: Passed 9/9 tests verifying logic for explicit weights, replay logic, skip precedence, aggregations, filters, and decay.
+
+### Benchmark Results
+- Average brute-force latency: 121.73 ms
+- Average FAISS latency: 12.59 ms
+- Speed improvement: 9.7x
+- FAISS indexing time: 0.14s (including L2 normalization)
 
 ### Problems Encountered
-- Windows cp1252 terminal cannot render Unicode characters (check marks, arrows, bullets).
-- Cosine similarity produces exact 1.0000 for duplicate tracks, causing floating-point boundary check to fail.
+- Missing `pytest` module.
 
 ### Solutions
-- Added `sys.stdout.reconfigure(encoding="utf-8")` to all scripts.
-- Added epsilon tolerance (1e-6) to similarity score validation bounds.
+- Installed `pytest` and successfully ran the tests.
 
 ### Current State
-Baseline content-based recommendation system is fully operational. All validation checks pass for multiple test songs.
+FAISS indexing, querying, and benchmark comparison are operational. The event schema and UPS heuristic foundation are tested and working.
 
-### Next Step
-Implement FAISS / approximate nearest-neighbour search for efficient similarity retrieval.
+### Next Action
+Implement artist and genre preference aggregation and begin the personalized candidate-ranking layer.
 
 ---
 
@@ -406,74 +386,38 @@ The source dataset is very large and full in-memory loading is unnecessary.
 Consequence:
 Data extraction must be incremental/chunked.
 
-## Decision: Initial 1M Sample
+## Decision: FAISS IndexFlatIP with L2 Normalization
 
 Date:
 2026-08-09
 
 Decision:
-Extract only 1M rows into a Parquet file for initial EDA and modeling.
+Use FAISS IndexFlatIP (inner product) for exact similarity search, coupled with L2 normalization of vectors before insertion and query.
 
 Reason:
-To enable faster iteration and model development before scaling up to 45M.
+The baseline recommender uses cosine similarity. FAISS inner product on L2-normalized vectors is mathematically equivalent to cosine similarity. IndexFlatIP provides exact nearest neighbors, avoiding quantization loss for the baseline comparison.
 
-## Decision: Do Not Retrain For Every New Song
-
-Decision:
-When a new song appears in the live catalog, generate its representation and add it to the vector index instead of retraining the complete recommendation model.
-
-Reason:
-Full model retraining for every new song is computationally inefficient.
-
-Status:
-PLANNED
-
-## Decision: Content-Based Baseline Uses StandardScaler
+## Decision: Separation of Events and Preferences
 
 Date:
 2026-08-09
 
 Decision:
-Use StandardScaler (zero mean, unit variance) for feature normalisation in the content-based baseline.
+Raw interaction events are logged and remain immutable. UserSongPreference is an aggregation calculated from these events.
 
 Reason:
-Features have very different scales (e.g., tempo 0-250, danceability 0-1, loudness negative dB). Without normalisation, large-scale variables dominate cosine similarity.
+Preserves historical interaction data. Prevents "double counting" errors when re-evaluating scores in the future. Allows decay functions to operate purely on the aggregated output without tampering with the original event records.
 
-Consequence:
-The fitted scaler must be saved and reloaded for inference.
-
-## Decision: Cosine Similarity as Baseline Metric
+## Decision: UPS Heuristics Are Not Learned
 
 Date:
 2026-08-09
 
 Decision:
-Use cosine similarity for the initial content-based recommender.
+UPS calculation relies on static heuristic weights based on project specifications. 
 
 Reason:
-Well-understood, widely used for content-based filtering. Provides a correct mathematical baseline before optimising with ANN indices.
-
-## Decision: FAISS Deferred to Phase 7
-
-Date:
-2026-08-09
-
-Decision:
-Do not implement FAISS or any approximate nearest-neighbour index in the baseline phase.
-
-Reason:
-The current goal is a correct baseline. Brute-force cosine similarity over 1M songs completes in ~0.1s per query, which is acceptable for development. FAISS will be needed for production-scale request volumes.
-
-## Decision: No Arbitrary Feature Weighting
-
-Date:
-2026-08-09
-
-Decision:
-All 13 content features receive equal treatment in the baseline model (no manual weight assignment).
-
-Reason:
-There is no empirical evidence yet to justify specific feature weights. Arbitrary weighting could bias the model without improving quality.
+There is currently no objective ground truth to train these weights on. These serve as a structural foundation for the personalization ranking layer.
 
 ---
 
@@ -523,6 +467,7 @@ Invalid numerical values:
 Parquet size: ~165 MB
 Feature matrix size: 99.2 MB (1000000 x 13 float64)
 Song index size: 50.6 MB
+FAISS Index size: 49.6 MB
 Last validation date: 2026-08-09
 
 ---
@@ -531,7 +476,7 @@ Last validation date: 2026-08-09
 
 ### Stage 1
 Content-based similarity.
-Status: COMPLETED
+Status: COMPLETED (using FAISS)
 
 Features used (13):
 danceability
@@ -548,9 +493,9 @@ key
 mode
 time_signature
 
-Normalisation: StandardScaler
-Similarity: Cosine
-Performance: ~0.1s per query (brute-force)
+Normalisation: StandardScaler + L2-Normalization
+Similarity: Cosine (via FAISS Inner Product)
+Performance: ~12.5ms per query (FAISS IndexFlatIP)
 
 ### Stage 2
 Song representations / embeddings.
@@ -560,6 +505,7 @@ Vector search.
 
 ### Stage 4
 User preference modeling.
+Status: COMPLETED (Foundation)
 
 ### Stage 5
 Collaborative filtering.
@@ -645,10 +591,9 @@ PLANNED -- NOT IMPLEMENTED
 
 DO NOT IMPLEMENT YET
 
-- FAISS
 - embeddings
 - collaborative filtering
-- UPS implementation
+- full database for UPS
 - user interaction database
 - hybrid ranking
 - external music APIs
@@ -681,61 +626,15 @@ Need to analyze differences in duplicates (e.g., different album releases, remas
 Date:
 2026-08-09
 
-### Issue: Windows cp1252 Encoding
-Description:
-Windows PowerShell default encoding (cp1252) cannot render Unicode characters used in print statements.
-
-Impact:
-Scripts crash with UnicodeEncodeError when outputting special characters.
-
-Status:
-RESOLVED
-
-Solution:
-Added `sys.stdout.reconfigure(encoding="utf-8")` to all scripts that produce terminal output.
-
-Date:
-2026-08-09
-
----
-
-# Commands That Currently Work
-
-```bash
-python -m venv venv
-
-venv\Scripts\activate
-
-pip install -r requirements.txt
-
-hf auth login
-
-python src/data/inspect_dataset.py
-
-python src/data/sample.py
-
-python src/data/prepare_features.py
-
-python src/models/test_content_model.py
-
-python src/models/test_content_model.py --track-id 0pqnGHJpmpxLKifKRmU6WP
-
-python src/models/test_content_model.py --song-name "Believer" --artist "Imagine Dragons"
-```
-
 ---
 
 # NEXT ACTION
 
 Current next task:
-Implement FAISS / approximate nearest-neighbour search for efficient
-similarity retrieval over the 1M-song feature matrix.
-
-Expected files:
-FAISS index and related search code.
+Implement artist and genre preference aggregation and begin the personalized candidate-ranking layer.
 
 Expected output:
-Sub-millisecond similarity search replacing brute-force cosine similarity.
+Logic to calculate user preferences towards specific artists and genres based on raw interaction events, feeding into a candidate ranker.
 
 Do not proceed beyond:
-Embeddings, collaborative filtering, UPS, or any downstream system.
+Collaborative filtering or any downstream system.
