@@ -1,0 +1,22 @@
+{
+  "input_dim": 13,
+  "hidden_dim": 128,
+  "embedding_dim": 64,
+  "normalize": true,
+  "dropout": 0.1,
+  "feature_order": [
+    "danceability",
+    "energy",
+    "loudness",
+    "speechiness",
+    "acousticness",
+    "instrumentalness",
+    "liveness",
+    "valence",
+    "tempo",
+    "duration",
+    "key",
+    "mode",
+    "time_signature"
+  ]
+}

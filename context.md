@@ -13,7 +13,7 @@ Current Development Stage:
 Fast Vector Similarity Search & UPS Foundation
 
 Current Phase:
-Phase 8 -- User Interaction Tracking & Phase 9 -- UPS Personalization (Initial Foundation)
+Phase 10 -- Artist & Genre Preferences, Phase 11 -- Neural Song Encoder, Phase 12 -- Neural User Encoder, Phase 13 -- Two-Tower Training (Foundation)
 
 Music Search
       |
@@ -61,24 +61,29 @@ Hybrid Recommendation
 
 CURRENT PHASE
 
-Phase 7 -- FAISS / Vector Search
+Phase 10 -- Artist & Genre Preferences
 Status: COMPLETED
 
-Phase 8 -- User Interaction Tracking
+Phase 11 -- Neural Song Encoder
 Status: COMPLETED
 
-Phase 9 -- UPS Personalization
+Phase 12 -- Neural User Encoder
+Status: COMPLETED
+
+Phase 13 -- Two-Tower Training
 Status: COMPLETED (Foundation)
 
 Objective:
-Replace brute-force search with FAISS for fast similarity retrieval.
-Build a reliable event logging layer for user interactions.
-Implement the first version of the User Preference Score (UPS).
+Implement user-level artist and genre preference tracking based on immutable events.
+Implement a modular neural song encoder using existing 13 features.
+Implement a neural user encoder using interaction history and aggregated preferences.
+Implement a Two-Tower Neural Recommender and training pipeline using contrastive loss.
 
 Features used:
-FAISS IndexFlatIP (exact cosine similarity via L2-normalization + inner product).
-Raw event history separate from aggregated user preferences.
-Heuristic initial weights for UPS, not learned parameters.
+FAISS exact similarity for baseline comparison.
+PyTorch for two-tower architecture.
+InfoNCE contrastive loss with in-batch negatives.
+Derived artist and genre preference scores normalized to [-1, 1].
 
 ---
 
@@ -89,21 +94,19 @@ Heuristic initial weights for UPS, not learned parameters.
 [x] Phase 3 -- Dataset Validation & Cleaning
 [x] Phase 4 -- Feature Engineering
 [x] Phase 5 -- Initial Content-Based Recommendation
-[ ] Phase 6 -- Song Embeddings
-[x] Phase 7 -- FAISS / Vector Search
-[x] Phase 8 -- User Interaction Tracking
-[x] Phase 9 -- UPS Personalization
-[ ] Phase 10 -- Artist & Genre Preferences
-[ ] Phase 11 -- Time / Context Signals
-[ ] Phase 12 -- Collaborative Filtering
-[ ] Phase 13 -- Hybrid Recommendation
-[ ] Phase 14 -- Live Song Catalog
-[ ] Phase 15 -- New Song Embedding Pipeline
-[ ] Phase 16 -- Recommendation API
-[ ] Phase 17 -- Lyrics Integration
-[ ] Phase 18 -- Audio / Playback Integration
-[ ] Phase 19 -- Evaluation
-[ ] Phase 20 -- Deployment
+[x] Phase 6 -- FAISS / Vector Search
+[x] Phase 7 -- User Interaction Tracking
+[x] Phase 8 -- UPS Personalization
+[x] Phase 9 -- Artist & Genre Preferences
+[x] Phase 10 -- Neural Song Encoder
+[x] Phase 11 -- Neural User Encoder
+[x] Phase 12 -- Two-Tower Training
+[ ] Phase 13 -- Generate and validate learned song embeddings
+[ ] Phase 14 -- FAISS on Learned Embeddings
+[ ] Phase 15 -- Neural Ranking / Re-ranking
+[ ] Phase 16 -- 10M Scaling
+[ ] Phase 17 -- Live New-Song Encoding
+[ ] Phase 18 -- Full Evaluation / Final System
 
 ---
 
@@ -133,21 +136,17 @@ Vector search:
 FAISS (IndexFlatIP used for the initial exact similarity baseline).
 
 ### Recommendation Architecture
-Content Similarity
-        +
-Collaborative Filtering
-        +
-User Preference Score (UPS)
-        +
-Artist Preference
-        +
-Genre Preference
-        +
-Context
-        +
-Freshness / Popularity
-        |
-Final Ranking
+Raw Interactions
+        ↓
+UPS
+        ↓
+Artist / Genre Preferences
+        ↓
+User Representation
+        ↓
+Two-Tower Neural Model
+        ↓
+User/Song Embedding Similarity
 
 ### Content-Based FAISS Recommender (COMPLETED)
 
@@ -296,19 +295,19 @@ valence (float64)
 CURRENT STATE
 
 Current phase:
-Phases 7-9: FAISS Search, User Interaction Tracking, UPS Foundation (COMPLETED)
+Phases 10-13: Artist/Genre Preferences, Neural Song/User Encoders, Two-Tower Training (COMPLETED)
 
 Current task:
 None -- phase completed.
 
 Last completed action:
-Built FAISS index, faiss_recommender, interaction models, and UPS scoring.
+Implemented Phase 1-4 pipeline: Artist/Genre preferences, Neural Encoders, and Two-Tower model with tests.
 
 Current blocker:
 None.
 
 Next action:
-Implement artist and genre preference aggregation and begin the personalized candidate-ranking layer.
+PHASE 5 — Generate and validate learned song embeddings
 
 ---
 
@@ -370,6 +369,48 @@ Implement artist and genre preference aggregation and begin the personalized can
 
 ---
 
+# Session Log
+
+## Session 2026-10-06 -- Session 4
+
+### Objective
+Implement Phase 1-4 requirements: Artist & Genre Preferences, Neural Song Encoder, Neural User Encoder, Two-Tower Neural Recommender.
+
+### Completed
+- Phase 1: Built `PreferenceStore` mapping raw user interactions to normalized [-1, 1] artist and genre preferences using existing UPS scoring logic. Added complete test suite + demo.
+- Phase 2: Implemented `SongEncoder` in PyTorch converting 13 raw content features to a learned embedding with L2-normalization.
+- Phase 3: Implemented `UserEncoder` and `UserHistoryBuilder`. User representation concatenates UPS-weighted historical song embeddings with top-K artist/genre preference scores.
+- Phase 4: Created `TwoTowerModel` using InfoNCE contrastive loss and in-batch negatives.
+- Phase 4: Created `TwoTowerTrainer` implementing a chronologically split training pipeline avoiding data leakage. Implemented metric evaluation (Recall@K, HitRate@K, NDCG@K).
+- Phase 4: Added synthetic demo scripts validating end-to-end functionality.
+
+### Files Created
+- `src/interactions/preferences.py`
+- `tests/test_preferences.py`
+- `src/interactions/demo_preferences.py`
+- `src/models/song_encoder.py`
+- `tests/test_song_encoder.py`
+- `src/models/user_encoder.py`
+- `tests/test_user_encoder.py`
+- `src/models/two_tower.py`
+- `tests/test_two_tower.py`
+- `src/models/demo_two_tower.py`
+
+### Tests Performed
+- Executed all new and existing tests: 66/66 passing.
+- Validated metric computation correctly bounding HitRate.
+- Validated PyTorch gradient flow, NaN safety, and checkpointing.
+
+### Limitations
+- The two-tower model currently operates on a small synthetic setup for validation.
+- Evaluation metrics are computed on this synthetic dataset and are not representative of production performance yet.
+- The 1M FAISS system remains the production baseline; learned embeddings are not yet serving retrieval.
+
+### Next Action
+PHASE 5 — Generate and validate learned song embeddings
+
+---
+
 # Decision Log
 
 ## Decision: Streaming Dataset Processing
@@ -418,6 +459,50 @@ UPS calculation relies on static heuristic weights based on project specificatio
 
 Reason:
 There is currently no objective ground truth to train these weights on. These serve as a structural foundation for the personalization ranking layer.
+
+## Decision: Preferences Derived from Immutable Interactions
+
+Date:
+2026-10-06
+
+Decision:
+Artist and Genre preferences are aggregated dynamically from raw interaction events rather than updated in place.
+
+Reason:
+Prevents state drift, enables fully reproducible evaluations, and guarantees decay operations do not destroy historical data.
+
+## Decision: Neural Song and User Encoders
+
+Date:
+2026-10-06
+
+Decision:
+Implement modular Neural Song and User Encoders using PyTorch.
+
+Reason:
+Provides the capacity to learn non-linear relationships across features and interaction sequences. The song encoder retains the existing 13-feature inputs to maintain compatibility with the data pipeline.
+
+## Decision: Two-Tower Architecture with InfoNCE
+
+Date:
+2026-10-06
+
+Decision:
+Use a Two-Tower model trained with InfoNCE contrastive loss and in-batch negatives.
+
+Reason:
+Scalable architecture for candidate retrieval. In-batch negatives are computationally efficient given the interaction data sparsity, and InfoNCE avoids manual negative sampling hyperparameter tuning for the initial phase.
+
+## Decision: Retain FAISS Baseline for Now
+
+Date:
+2026-10-06
+
+Decision:
+The existing 1M content-based FAISS index is not yet replaced by learned embeddings.
+
+Reason:
+The two-tower model is newly implemented and requires training/validation on real data at scale before replacing the exact-similarity baseline.
 
 ---
 
@@ -631,10 +716,10 @@ Date:
 # NEXT ACTION
 
 Current next task:
-Implement artist and genre preference aggregation and begin the personalized candidate-ranking layer.
+PHASE 5 — Generate and validate learned song embeddings
 
 Expected output:
-Logic to calculate user preferences towards specific artists and genres based on raw interaction events, feeding into a candidate ranker.
+Trained and generated embeddings replacing the baseline content vectors for evaluation.
 
 Do not proceed beyond:
-Collaborative filtering or any downstream system.
+Neural Ranking / Re-ranking or 10M scaling.
